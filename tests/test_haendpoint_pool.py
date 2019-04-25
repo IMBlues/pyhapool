@@ -1,7 +1,7 @@
 import unittest
 
-from blue_krill.connection_tools.ha_endpoints_pool import HAEndpointsPool, Endpoint
-from blue_krill.connection_tools.ha_algorithm import BasicHAAlgorithm
+from failover.ha_endpoints_pool import HAEndpointsPool, Endpoint
+from failover.ha_algorithm import BasicHAAlgorithm
 
 
 class TestFailOver(unittest.TestCase):
