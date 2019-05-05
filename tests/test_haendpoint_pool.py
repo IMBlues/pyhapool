@@ -1,14 +1,14 @@
 import unittest
 
-from failover.ha_endpoints_pool import HAEndpointsPool, Endpoint
-from failover.ha_algorithm import BasicHAAlgorithm
+from blue_krill.connections.ha_endpoint_pool import HAEndpointPool, Endpoint
+from blue_krill.connections.ha_algorithm import BasicHAAlgorithm
 
 
-class TestFailOver(unittest.TestCase):
+class TestEndpointPool(unittest.TestCase):
 
     def setUp(self) -> None:
         fake_list = [f"fake{x}" for x in range(5)]
-        self.pool = HAEndpointsPool.from_list(fake_list)
+        self.pool = HAEndpointPool.from_list(fake_list)
 
     def test_fail(self):
         self.pool.fail()
@@ -80,6 +80,31 @@ class TestFailOver(unittest.TestCase):
 
         assert self.pool.active.raw == "fake0"
 
+    def test_recover_normal_logic(self):
+        # black test
+        self.pool.elect()
+
+        # trying to isolate
+        for _ in range(self.pool.algorithm.failure_threshold):
+            self.pool.fail()
+
+        # make sure endpoint already been recovered
+        self.pool.recover()
+        assert len(self.pool) == len(self.pool._all_pool)
+
+    def test_custom_recover_method(self):
+        self.pool.elect()
+
+        # trying to isolate
+        for _ in range(self.pool.algorithm.failure_threshold):
+            self.pool.fail()
+
+        def never_recover(endpoint):
+            return False
+
+        self.pool.recover(method=never_recover)
+        assert len(self.pool._all_pool) - len(self.pool) == 1
+
 
 class TestBasicHAAlgorithm(unittest.TestCase):
 
@@ -91,7 +116,7 @@ class TestBasicHAAlgorithm(unittest.TestCase):
 
     def test_find_tops(self):
         with self.assertRaises(ValueError):
-            self.algo.elect([])
+            self.algo.find_best_endpoint([])
 
         self.endpoints[0].succeed(10)
         self.endpoints[1].succeed(20)

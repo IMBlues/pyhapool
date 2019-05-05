@@ -5,8 +5,7 @@ from .exceptions import NoEndpointAvailable
 
 
 def use_algo_as_default(method_name):
-    """
-    use algorithm's method if no method in params
+    """use algorithm's method if no custom method pass in
     :param method_name: method name in algorithm class
     :return:
     """
@@ -23,7 +22,7 @@ def use_algo_as_default(method_name):
     return _wrapper
 
 
-def elect_if_no_active(func):
+def elect_if_no_active_ep(func):
     """if there is no active endpoint, we will elect one before function
     """
     @functools.wraps(func)
@@ -35,7 +34,7 @@ def elect_if_no_active(func):
 
 
 def raise_if_no_data(func):
-    """raise ValueError if there is no data in pool
+    """raise NoEndpointAvailable if there is no data in pool
     """
     @functools.wraps(func)
     def _wrapped(self, *args, **kwargs):

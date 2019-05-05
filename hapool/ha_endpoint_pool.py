@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 
 from .ha_algorithm import BasicHAAlgorithm
 from .exceptions import NoEndpointAvailable
-from .decorators import use_algo_as_default, raise_if_no_data, elect_if_no_active
+from .decorators import use_algo_as_default, raise_if_no_data, elect_if_no_active_ep
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ THAAlgorithm = TypeVar('THAAlgorithm', bound='HAAlgorithmBase')
 
 
 @dataclass
-class HAEndpointsPool:
+class HAEndpointPool:
     """Endpoints pool which own high available features like failOver"""
 
     # for safety of thread
@@ -61,6 +61,10 @@ class HAEndpointsPool:
     def active(self) -> 'Endpoint':
         return self._active
 
+    @property
+    def isolated_eps(self) -> List['Endpoint']:
+        return list(set(self._all_pool) - set(self._pool))
+
     def add(self, raw_end_point: Any) -> NoReturn:
         """receive any type，mount on endpoint"""
         self._all_pool.append(Endpoint(raw=raw_end_point))
@@ -72,7 +76,7 @@ class HAEndpointsPool:
         if available:
             self._pool.append(endpoint)
 
-    @elect_if_no_active
+    @elect_if_no_active_ep
     def fail(self, isolate_method: Callable[['Endpoint'], bool] = None, score_delta: int = None) -> NoReturn:
         """mark active endpoint as failure，and try to scan entire pool for isolating"""
         if not score_delta:
@@ -83,7 +87,7 @@ class HAEndpointsPool:
             # only isolate when fail
             self.try_to_isolate(method=isolate_method)
 
-    @elect_if_no_active
+    @elect_if_no_active_ep
     def succeed(self, score_delta: int = None) -> NoReturn:
         if not score_delta:
             score_delta = self.success_score_delta
@@ -91,7 +95,7 @@ class HAEndpointsPool:
         with self._rlock:
             self._active.succeed(score_delta=score_delta)
 
-    @use_algo_as_default('isolate')
+    @use_algo_as_default('should_be_isolated')
     def try_to_isolate(self, method: Callable[['Endpoint'], bool] = None) -> NoReturn:
         with self._rlock:
             # both copy.copy() and copy.deepcopy() are not thread safe!
@@ -103,9 +107,17 @@ class HAEndpointsPool:
         if not self._pool:
             raise NoEndpointAvailable("no Endpoint available in pool")
 
-    def recovery(self):
-        """recovery endpoints which is not in self._pool"""
-        raise NotImplementedError
+    @use_algo_as_default('should_be_recovered')
+    def recover(self, method: Callable[['Endpoint'], bool] = None) -> NoReturn:
+        """recover endpoints which is not in self._pool"""
+        if not self.isolated_eps:
+            return
+
+        with self._rlock:
+            for ep in self.isolated_eps:
+                # put back if should be recovered
+                if method(ep):
+                    self._pool.append(ep)
 
     def pick(self, elect_method: Callable[[List['Endpoint']], 'Endpoint'] = None) -> Any:
         """elect and pick raw data of active endpoint"""
@@ -113,7 +125,7 @@ class HAEndpointsPool:
         return self._active.raw
 
     @raise_if_no_data
-    @use_algo_as_default('elect')
+    @use_algo_as_default('find_best_endpoint')
     def elect(self, method: Callable[[List['Endpoint']], 'Endpoint'] = None) -> NoReturn:
         """elect by elect_method and set active"""
         elected = method(self._pool)
@@ -124,8 +136,10 @@ class HAEndpointsPool:
     @contextmanager
     def get_endpoint(self,
                      auto_reelect: bool = True,
+                     auto_recover: bool = True,
                      isolate_method: Callable[['Endpoint'], bool] = None,
                      elect_method: Callable[[List['Endpoint']], 'Endpoint'] = None,
+                     recover_method: Callable[['Endpoint'], bool] = None,
                      exempt_exceptions: Tuple[Type[Exception]] = None) -> Any:
         """
         use context manager to simplify failOver process
@@ -133,11 +147,15 @@ class HAEndpointsPool:
         :param auto_reelect: if auto reelect
         :param isolate_method: custom isolate method
         :param elect_method: custom elect method
+        :param recover_method: custom recover method
         :param exempt_exceptions: exceptions which should not be mark as failure
         """
         try:
             if not self._active:
-                self.elect()
+                if auto_recover:
+                    self.recover(method=recover_method)
+
+                self.elect(method=elect_method)
 
             yield self._active.raw
         except Exception as e:
@@ -151,6 +169,9 @@ class HAEndpointsPool:
                            f"the active endpoint {self._active} will be mark as failure")
             self.fail(isolate_method)
             if auto_reelect:
+                if auto_recover:
+                    self.recover(method=recover_method)
+
                 self.elect(method=elect_method)
         else:
             self.succeed()
@@ -178,7 +199,7 @@ class Endpoint:
 
     def fail(self, score_delta: int = 0) -> NoReturn:
         """
-        :param score_delta:
+        :param score_delta: delta of score
         :return: no return
         """
         self._update_score(score_delta=score_delta)
