@@ -4,18 +4,19 @@ A handy, customizable python library that provides high availability(including f
 
 ## Install
 
-```python
+```bash
 pip install hapool
 ```
 
 ## QuickStart
 
-For example, we need to connect to multiple kubernetes apiserver.
+For example, We may need to connect to a kubernetes cluster with multiple apiserver endpoints.
+
 ```python
 from pyhapool import HAEndpointPool
 from kubernetes.client import ApiClient
 
-# got configuration list which contain multiple apiservers
+# got configuration list which contains apiservers' configurations
 configuration_list = [...]
 ha_pool = HAEndpointPool.from_list(configuration_list)
 
@@ -29,8 +30,4 @@ class HAApiClient(ApiClient):
                 return super().call_api(*args, **kwargs)
 ```
 
-If any apiserver became unavailable (may raise some exceptions), `ha_pool` would switch to next endpoint until any available one been chosen(work like upstream in `nginx`).
-
-----
-
-more documentation is coming.
+For any request, if the current apiserver endpoint becomes unavailable, ha_pool will automatically switch to the next available endpoint until the request is completed normally.
