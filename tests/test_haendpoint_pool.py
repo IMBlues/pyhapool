@@ -41,7 +41,7 @@ class TestEndpointPool(unittest.TestCase):
     def test_get_endpoint(self):
         with self.pool.get_endpoint(auto_reelect=False) as fake_item:
             # use fake item to do something
-            raise ValueError("单元测试专属错误")
+            raise ValueError("unittest error")
 
         assert self.pool.active.failure_count == 1
 
@@ -56,7 +56,7 @@ class TestEndpointPool(unittest.TestCase):
     def test_get_endpoint_auto_reelect(self):
         with self.pool.get_endpoint() as fake_item:
             # use fake item to do something
-            raise ValueError("单元测试专属错误")
+            raise ValueError("unittest error")
 
         assert self.pool.active.failure_count == 0
 
@@ -74,14 +74,14 @@ class TestEndpointPool(unittest.TestCase):
 
         self.pool.elect(method=custom_isolate)
 
-        # 此时 fake0 已经得分偏低
+        # fake0 has lower score now
         self.pool.fail()
         self.pool.fail()
 
+        # still return first one
         assert self.pool.active.raw == "fake0"
 
     def test_recover_normal_logic(self):
-        # black test
         self.pool.elect()
 
         # trying to isolate
