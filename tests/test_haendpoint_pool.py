@@ -1,7 +1,7 @@
 import unittest
 
-from blue_krill.connections.ha_endpoint_pool import HAEndpointPool, Endpoint
-from blue_krill.connections.ha_algorithm import BasicHAAlgorithm
+from hapool.ha_endpoint_pool import HAEndpointPool, Endpoint
+from hapool.ha_algorithm import BasicHAAlgorithm
 
 
 class TestEndpointPool(unittest.TestCase):

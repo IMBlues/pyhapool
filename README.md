@@ -2,6 +2,12 @@
 
 A handy, customizable python library that provides high availability(including failover etc.) for multiple node connections.
 
+## Install
+
+```python
+pip install hapool
+```
+
 ## QuickStart
 
 For example, we need to connect to multiple kubernetes apiserver.

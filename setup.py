@@ -12,9 +12,9 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'pyfailover'
-DESCRIPTION = 'A package supply handy components for failover'
-URL = 'https://github.com/IMBlues/pyfailover'
+NAME = 'hapool'
+DESCRIPTION = 'A handy, customizable python library that provides high availability for multiple node connections'
+URL = 'https://github.com/IMBlues/pyhapool'
 EMAIL = 'bluesedenyu@gmail.com'
 AUTHOR = 'Amazing Blues'
 REQUIRES_PYTHON = '>=3.6.0'
