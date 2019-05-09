@@ -48,10 +48,10 @@ new_endpoint_raw = ha_pool.pick()
 ha_pool.recover()
 ```
 
-`get_endpoint` has properly stitched the above interfaces together, it is recommended to use `get_endpoint` directly.
+All the above interfaces have been integrated in `get_endpoint`, so it is recommended to use `get_endpoint` directly.
 
 ## Customization
-`hapool` provides a various way to customize.
+`hapool` provides two methods for customizing policies.
 
 ### use standalone methods
 ```python
@@ -84,7 +84,7 @@ If you have a complete strategy, please use `BasicHAAlgorithm`.
 ```python
 from hapool import BasicHAAlgorithm, HAEndpointPool
 
-class AwesowAlgorithm(BasicHAAlgorithm):
+class AwesomeAlgorithm(BasicHAAlgorithm):
 
     def find_best_endpoint(self, endpoints: List['Endpoint']) -> 'Endpoint':
         # always get first item
@@ -100,7 +100,7 @@ class AwesowAlgorithm(BasicHAAlgorithm):
         
 endpoint_raw_list = [...]
 ha_pool = HAEndpointPool.from_list(endpoint_raw_list)
-ha_pool.algorithm = AwesowAlgorithm()
+ha_pool.algorithm = AwesomeAlgorithm()
 
 # use ha_pool as usual
 with ha_pool.get_endpoint() as endpoint:
