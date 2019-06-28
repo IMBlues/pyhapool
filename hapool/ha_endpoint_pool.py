@@ -161,8 +161,8 @@ class HAEndpointPool:
         except Exception as e:
             exempt_exceptions = exempt_exceptions or ()
             if isinstance(e, exempt_exceptions):
-                logger.info(f"endpoints pool got exception: {e}, "
-                            f"but raising anyway according to upper caller")
+                logger.exception("endpoints pool got exception, "
+                                 "but raising anyway according to upper caller")
                 raise
 
             logger.warning(f"endpoints pool got exception: {e}, "
